@@ -6,7 +6,7 @@
 
 workflow:
   name: "Article Discovery and Content Creation"
-  version: "1.0.0"
+  version: "1.1.0"
   description: |
     Discovers science papers, downloads them, creates scripts, finds/generates images,
     and prepares all resources needed before voice generation.
@@ -30,6 +30,7 @@ prerequisites:
         location: "project/src/.env"
         required: true
   - topics_reference: "readonly_sources_of_truth/science_papers_topics.txt"
+  - speech_speed_reference: "readonly_sources_of_truth/voice_generator_speech_speed.txt"
 
 # Input required from user
 inputs:
@@ -152,10 +153,25 @@ steps:
   # STEP 5: Create Script
   - step: 5
     name: "create_script"
-    description: "Write TikTok script for voice generation"
+    description: "Write TikTok script for voice generation with planned word count"
+
+    actions:
+      - action: "calculate_word_budget"
+        description: "Calculate how many words the script should contain based on target duration and speech speed"
+        tool_call:
+          function: "calculate_script_word_amount"
+          module: "tools.calculate_script_word_amount"
+          params:
+            duration: "<target_duration_seconds (30-60, aim for 45)>"
+        note: "Uses speech speed from readonly_sources_of_truth/voice_generator_speech_speed.txt"
+        use_result: "Write the script to match the calculated words_amount"
+
+      - action: "write_script"
+        description: "Write the script matching the calculated word budget"
 
     requirements:
       - "Duration: 30-60 seconds (aim for 45 seconds)"
+      - "Word count: Must match calculate_script_word_amount result for target duration"
       - "Hook: First 2 seconds must grab attention"
       - "Style: Dynamic, engaging, conversational"
       - "Format: Pure text only (no comments, no symbols, no stage directions)"
@@ -179,10 +195,12 @@ steps:
       - "Check result['success'] == True"
       - "Verify script.txt exists"
       - "Verify script is pure text (no markdown, no formatting)"
+      - "Verify word count is close to calculated words_amount"
 
     output:
       - "script_path: <path to script.txt>"
       - "estimated_duration: <duration in seconds>"
+      - "target_word_count: <from calculate_script_word_amount>"
 
   # STEP 6: Create Time Script
   - step: 6
@@ -282,21 +300,19 @@ steps:
     requirements:
       - "Professional, clear prompt style"
       - "Minimalistic and scene-focused"
-      - "Account for weak/fast generator model (runware:400@4)"
+      - "Account for weak/fast generator model"
       - "TikTok portrait format (720x1280)"
       - "Relevant to script section"
 
+    prompt_template: "[Abstract 5 words], [photography style], [camera model/lens], [angle], [image structure], [lighting description]"
+    prompt_example: "Cat eating from bird bowl, dog drinking from butterfly bowl, cinematic photograph, Sony A7R IV 50mm, eye-level, cozy kitchen composition with pets in foreground, warm sunlight streaming through window"
+
     prompt_guidelines:
-      - "Be specific about composition"
-      - "Include style (e.g., 'professional scientific illustration')"
-      - "Mention colors if important"
+      - "First 5 words define the most of the image - choose wisely"
+      - "Do not bias or limit creativity by the example - image could be anything: abstract figure, a nice photo, or anything in between"
+      - "Follow the template: [Abstract 5 words], [photography style], [camera model/lens], [angle], [image structure], [lighting description]"
       - "Avoid complex multi-object scenes"
       - "Avoid text in images (generators struggle with text)"
-
-    examples:
-      - "Professional scientific illustration of DNA double helix structure, blue and purple gradient background, minimalistic, portrait orientation"
-      - "Abstract visualization of neural network connections, glowing nodes, dark background, futuristic style, vertical composition"
-      - "Laboratory microscope in close-up, soft lighting, clean modern lab environment, portrait aspect ratio"
 
     actions:
       - action: "create_prompts"
@@ -466,6 +482,13 @@ agent_notes:
 
 # Version History
 version_history:
+  - version: "1.1.0"
+    date: "2026-02-11"
+    changes: |
+      - Added calculate_script_word_amount tool to script creation step for word budget planning
+      - Updated image generation prompt template with structured format
+      - Fixed generate_images_runware.py model ID file parsing
+      - Added speech speed reference to prerequisites
   - version: "1.0.0"
     date: "2026-02-10"
     changes: "Initial workflow creation for MVP"

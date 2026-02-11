@@ -17,91 +17,114 @@ from project.src.utils.env_utils import load_all_env, get_runware_api_key
 from project.src.utils.error_utils import create_error_response, create_success_response
 
 
+async def _run_inference(
+    runware_client: Runware,
+    prompt: str,
+    output_path: str,
+    model: str,
+    timeout: int
+) -> Dict:
+    """
+    Runs a single inference request against one model.
+
+    Returns:
+        dict: {"success": bool, "path": str, "error": str}
+    """
+    request = IImageInference(
+        positivePrompt=prompt,
+        model=model,
+        numberResults=1,
+        height=1280,
+        width=720,
+        outputType="URL"
+    )
+
+    results = await asyncio.wait_for(
+        runware_client.imageInference(requestImage=request),
+        timeout=timeout
+    )
+
+    if not results or len(results) == 0:
+        return {"success": False, "error": "No image generated"}
+
+    image_result = results[0]
+
+    if hasattr(image_result, 'imageURL'):
+        image_url = image_result.imageURL
+    elif hasattr(image_result, 'imageUrl'):
+        image_url = image_result.imageUrl  # type: ignore
+    else:
+        return {"success": False, "error": "Image URL not found in result"}
+
+    response = requests.get(image_url, timeout=10)  # type: ignore
+    response.raise_for_status()
+
+    with open(output_path, 'wb') as f:
+        f.write(response.content)
+
+    return {"success": True, "path": output_path}
+
+
 async def generate_single_image(
     runware_client: Runware,
     prompt: str,
     output_path: str,
     model_id: str,
+    default_model_id: str,
     timeout: int = 30
 ) -> Dict:
     """
-    Generates a single image with timeout protection.
+    Generates a single image with fallback to default model.
+
+    Tries the main model first. On failure, retries once with the
+    default model before giving up.
 
     Args:
         runware_client: Connected Runware client
         prompt: Image generation prompt
         output_path: Full path where to save the image
-        model_id: Runware model ID
+        model_id: Primary Runware model ID
+        default_model_id: Fallback Runware model ID
         timeout: Timeout in seconds
 
     Returns:
         dict: {"success": bool, "path": str, "error": str}
     """
+    # Try main model
     try:
-        # Create image inference request
-        request = IImageInference(
-            positivePrompt=prompt,
-            model=model_id,
-            numberResults=1,
-            height=1280,
-            width=720,
-            outputType="URL"  # Get URL to download
-        )
-
-        # Generate with timeout
-        results = await asyncio.wait_for(
-            runware_client.imageInference(requestImage=request),
-            timeout=timeout
-        )
-
-        if not results or len(results) == 0:
-            return {
-                "success": False,
-                "error": "No image generated"
-            }
-
-        # Get the first result
-        image_result = results[0]
-
-        # Download the image from URL
-        if hasattr(image_result, 'imageURL'):
-            image_url = image_result.imageURL
-        elif hasattr(image_result, 'imageUrl'):
-            image_url = image_result.imageUrl
-        else:
-            return {
-                "success": False,
-                "error": "Image URL not found in result"
-            }
-
-        # Download image
-        response = requests.get(image_url, timeout=10)
-        response.raise_for_status()
-
-        # Save image
-        with open(output_path, 'wb') as f:
-            f.write(response.content)
-
-        return {
-            "success": True,
-            "path": output_path
-        }
-
+        result = await _run_inference(runware_client, prompt, output_path, model_id, timeout)
+        if result["success"]:
+            return result
+        main_error = result["error"]
     except asyncio.TimeoutError:
-        return {
-            "success": False,
-            "error": f"Timeout after {timeout} seconds"
-        }
+        main_error = f"Timeout after {timeout} seconds"
     except Exception as e:
+        main_error = str(e)
+
+    # Fallback to default model if it differs
+    if default_model_id != model_id:
+        try:
+            result = await _run_inference(runware_client, prompt, output_path, default_model_id, timeout)
+            if result["success"]:
+                return result
+            fallback_error = result["error"]
+        except asyncio.TimeoutError:
+            fallback_error = f"Timeout after {timeout} seconds"
+        except Exception as e:
+            fallback_error = str(e)
+
         return {
             "success": False,
-            "error": str(e)
+            "error": f"Main model ({model_id}): {main_error}; Fallback model ({default_model_id}): {fallback_error}"
         }
+
+    return {"success": False, "error": main_error}
 
 
 async def generate_all_images_async(
     video_uuid: str,
     model_id: str,
+    default_model_id: str,
     timeout_per_image: int
 ) -> Dict:
     """
@@ -110,6 +133,7 @@ async def generate_all_images_async(
     Args:
         video_uuid: Video project UUID
         model_id: Runware model ID
+        default_model_id: Runware backup model ID
         timeout_per_image: Timeout per image in seconds
 
     Returns:
@@ -174,6 +198,7 @@ async def generate_all_images_async(
             prompt,
             output_path,
             model_id,
+            default_model_id,
             timeout_per_image
         )
 
@@ -187,7 +212,7 @@ async def generate_all_images_async(
 
     # Disconnect
     try:
-        await runware.close()
+        await runware.close() # type: ignore
     except:
         pass  # Ignore disconnect errors
 
@@ -237,15 +262,26 @@ def generate_images_runware(video_uuid: str, timeout_per_image: int = 30) -> Dic
         from project.src.utils.path_utils import get_readonly_sources_path
         model_id_file = os.path.join(get_readonly_sources_path(), "runware_ai_api_model_id.txt")
 
+        default_model_id = "runware:400@4"
+        model_id = default_model_id
         if os.path.exists(model_id_file):
             with open(model_id_file, 'r', encoding='utf-8') as f:
-                model_id = f.read().strip()
-        else:
-            model_id = "runware:400@4"  # Default fallback
+                for _ in range(2):
+                    line = f.readline().strip()
+                    if not line:
+                        continue
+                    parts = line.split(" ", 1)
+                    if len(parts) != 2:
+                        continue
+                    model_type, model_value = parts
+                    if model_type == "main":
+                        model_id = model_value
+                    elif model_type == "default":
+                        default_model_id = model_value
 
         # Run async generation
         result = asyncio.run(
-            generate_all_images_async(video_uuid, model_id, timeout_per_image)
+            generate_all_images_async(video_uuid, model_id, default_model_id, timeout_per_image)
         )
 
         return result
