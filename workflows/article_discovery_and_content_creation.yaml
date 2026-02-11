@@ -1,0 +1,471 @@
+# Article Discovery and Content Creation Workflow
+# For Science Papers TikTok Blogger MVP
+#
+# This workflow guides agents through discovering science papers and creating
+# all content resources needed for a TikTok video review.
+
+workflow:
+  name: "Article Discovery and Content Creation"
+  version: "1.0.0"
+  description: |
+    Discovers science papers, downloads them, creates scripts, finds/generates images,
+    and prepares all resources needed before voice generation.
+
+  agent_mode: "semi-automated"
+  phases: ["discovery", "download", "scripting", "image_acquisition"]
+
+  # Outputs required before human handoff
+  required_outputs:
+    - "paper.pdf"
+    - "script.txt"
+    - "time_script.txt"
+    - "images (found or generated)"
+
+# Prerequisites before starting
+prerequisites:
+  - environment: "Python 3 virtual environment activated"
+  - dependencies: "requirements.txt installed"
+  - api_keys:
+      - name: "RUNWARE_AI_API_KEY"
+        location: "project/src/.env"
+        required: true
+  - topics_reference: "readonly_sources_of_truth/science_papers_topics.txt"
+
+# Input required from user
+inputs:
+  - name: "user_request"
+    description: "User asks for article discovery or video creation"
+    examples:
+      - "Find me an interesting physics paper"
+      - "Create a TikTok video about recent AI research"
+      - "Discover a trending science paper"
+
+# Workflow Steps
+steps:
+  # STEP 1: Web Search for Papers
+  - step: 1
+    name: "web_search_for_papers"
+    description: "Search the web for science papers matching user interests"
+
+    actions:
+      - action: "check_topics_reference"
+        tool: "Read"
+        params:
+          file_path: "readonly_sources_of_truth/science_papers_topics.txt"
+        purpose: "Understand preferred topics for paper discovery"
+
+      - action: "web_search"
+        tool: "WebSearch"
+        params:
+          query: "<construct query from user request and topics>"
+        criteria:
+          - "Paper must be freely accessible (not behind paywall)"
+          - "Paper must have mainstream relevance (current hype/trending)"
+          - "Paper must be TikTok-friendly (not too long/complex)"
+          - "Paper must tell an interesting story"
+          - "Prefer papers with visual diagrams or figures"
+
+      - action: "select_paper"
+        validation:
+          - "URL is accessible"
+          - "Paper is in PDF format or has PDF download link"
+          - "Content is appropriate for TikTok audience"
+
+    success_criteria:
+      - "Valid paper URL identified"
+      - "Paper meets all selection criteria"
+
+    output:
+      - "paper_url: <URL to PDF>"
+
+  # STEP 2: Generate Video UUID
+  - step: 2
+    name: "generate_video_uuid"
+    description: "Generate unique identifier for this video project"
+
+    actions:
+      - action: "create_uuid"
+        method: "Generate short alphanumeric UUID (e.g., abc123def456)"
+        note: "This UUID will be used throughout the workflow"
+
+    output:
+      - "video_uuid: <generated_uuid>"
+
+  # STEP 3: Download Paper
+  - step: 3
+    name: "download_paper"
+    description: "Download the paper PDF and create resources folder"
+
+    tool_call:
+      function: "download_paper"
+      module: "tools.download_paper"
+      params:
+        url: "<paper_url from step 1>"
+        video_uuid: "<video_uuid from step 2>"
+
+    validation:
+      - "Check result['success'] == True"
+      - "Verify paper.pdf exists in resources folder"
+      - "Verify PDF is valid (magic bytes check)"
+
+    on_error:
+      - "Inform user of download failure"
+      - "Suggest alternative paper URL"
+      - "Do not proceed to next step"
+
+    output:
+      - "resources_folder: <path to video resources folder>"
+      - "paper_path: <path to paper.pdf>"
+
+  # STEP 4: Read and Analyze Paper
+  - step: 4
+    name: "read_and_analyze_paper"
+    description: "Read the paper PDF and understand key findings"
+
+    actions:
+      - action: "read_paper"
+        tool: "Read"
+        params:
+          file_path: "<paper_path from step 3>"
+        note: "For large PDFs, read first 10 pages to get overview"
+
+      - action: "extract_key_points"
+        analysis:
+          - "Main research question or hypothesis"
+          - "Key findings or discoveries"
+          - "Why this matters (real-world impact)"
+          - "Interesting or surprising elements"
+          - "Visual elements (diagrams, charts, photos)"
+
+      - action: "identify_hook"
+        purpose: "Find the most attention-grabbing element for first 2 seconds"
+        examples:
+          - "Scientists discovered a way to..."
+          - "What if I told you that..."
+          - "This changes everything about..."
+
+    output:
+      - "key_findings: <list of main points>"
+      - "hook_element: <attention-grabbing opening>"
+      - "visual_references: <list of figures/diagrams in paper>"
+
+  # STEP 5: Create Script
+  - step: 5
+    name: "create_script"
+    description: "Write TikTok script for voice generation"
+
+    requirements:
+      - "Duration: 30-60 seconds (aim for 45 seconds)"
+      - "Hook: First 2 seconds must grab attention"
+      - "Style: Dynamic, engaging, conversational"
+      - "Format: Pure text only (no comments, no symbols, no stage directions)"
+      - "No filler words: Avoid 'um', 'uh', 'like'"
+      - "Target audience: General public interested in science"
+
+    structure:
+      - "Hook (0-2s): Attention-grabbing opening"
+      - "Setup (2-10s): Context and why it matters"
+      - "Core content (10-40s): Key findings explained simply"
+      - "Closing (40-45s): Impact or call-to-action"
+
+    tool_call:
+      function: "save_script"
+      module: "tools.save_script"
+      params:
+        script_content: "<generated script text>"
+        video_uuid: "<video_uuid>"
+
+    validation:
+      - "Check result['success'] == True"
+      - "Verify script.txt exists"
+      - "Verify script is pure text (no markdown, no formatting)"
+
+    output:
+      - "script_path: <path to script.txt>"
+      - "estimated_duration: <duration in seconds>"
+
+  # STEP 6: Create Time Script
+  - step: 6
+    name: "create_time_script"
+    description: "Create timeline mapping timestamps to images"
+
+    requirements:
+      - "Line 1: Total duration in seconds (integer or float)"
+      - "Lines 2+: timestamp|image_filename"
+      - "Format: '0.0|paper_image_001_found.jpg'"
+      - "Timestamps in ascending order"
+      - "Images change every 5-10 seconds typically"
+
+    planning:
+      - "Break script into visual sections"
+      - "Assign timestamps for image transitions"
+      - "Generate image IDs (001, 002, 003, etc.)"
+      - "Decide which images to find vs generate"
+
+    example_content: |
+      45
+      0.0|paper_image_001_found.jpg
+      5.2|paper_image_002_generated.png
+      12.8|paper_image_003_generated.png
+      22.5|paper_image_004_found.jpg
+      35.0|paper_image_005_generated.png
+
+    tool_call:
+      function: "save_time_script"
+      module: "tools.save_time_script"
+      params:
+        time_script_content: "<generated time script>"
+        video_uuid: "<video_uuid>"
+
+    validation:
+      - "Check result['success'] == True"
+      - "Verify time_script.txt exists"
+      - "Verify format is correct (duration on line 1, entries follow pattern)"
+
+    output:
+      - "time_script_path: <path to time_script.txt>"
+      - "image_sections: <list of image IDs needed>"
+
+  # STEP 7: Find Images
+  - step: 7
+    name: "find_images"
+    description: "Search web for existing images to use in video"
+
+    strategy:
+      - "Try to find article main page/feature image for first seconds"
+      - "Look for diagrams/figures from the paper"
+      - "Search for relevant stock images"
+      - "Prioritize freely available images"
+
+    requirements:
+      - "Format: TikTok 9:16 (portrait) or 3:4"
+      - "Resolution: Minimum 720x1280"
+      - "File types: JPG or PNG"
+      - "Must be relevant to script content"
+
+    actions:
+      - action: "web_search_images"
+        tool: "WebSearch"
+        params:
+          query: "<construct query from paper topic>"
+        note: "Look for image URLs, article feature images"
+
+      - action: "download_found_images"
+        tool_call:
+          function: "download_image"
+          module: "tools.download_image"
+          params:
+            url: "<image_url>"
+            video_uuid: "<video_uuid>"
+            image_type: "found"
+        iterate: "For each found image"
+
+    validation:
+      - "Check each download result['success'] == True"
+      - "Verify image files exist"
+      - "Verify images are valid (magic bytes check)"
+
+    on_error:
+      - "Log which images failed to download"
+      - "Continue with remaining images"
+      - "Note which images need to be generated instead"
+
+    output:
+      - "found_images: <list of successfully downloaded images>"
+      - "missing_images: <list of images still needed>"
+
+  # STEP 8: Generate Image Prompts
+  - step: 8
+    name: "generate_image_prompts"
+    description: "Create prompts for AI image generation"
+
+    requirements:
+      - "Professional, clear prompt style"
+      - "Minimalistic and scene-focused"
+      - "Account for weak/fast generator model (runware:400@4)"
+      - "TikTok portrait format (720x1280)"
+      - "Relevant to script section"
+
+    prompt_guidelines:
+      - "Be specific about composition"
+      - "Include style (e.g., 'professional scientific illustration')"
+      - "Mention colors if important"
+      - "Avoid complex multi-object scenes"
+      - "Avoid text in images (generators struggle with text)"
+
+    examples:
+      - "Professional scientific illustration of DNA double helix structure, blue and purple gradient background, minimalistic, portrait orientation"
+      - "Abstract visualization of neural network connections, glowing nodes, dark background, futuristic style, vertical composition"
+      - "Laboratory microscope in close-up, soft lighting, clean modern lab environment, portrait aspect ratio"
+
+    actions:
+      - action: "create_prompts"
+        iterate: "For each missing image from step 7"
+        process:
+          - "Identify script section for this image"
+          - "Determine visual theme"
+          - "Write professional prompt"
+
+      - action: "save_prompts"
+        tool_call:
+          function: "save_image_prompt"
+          module: "tools.save_image_prompt"
+          params:
+            prompt_text: "<generated prompt>"
+            image_id: "<image_id>"
+            video_uuid: "<video_uuid>"
+        iterate: "For each prompt"
+
+    validation:
+      - "Check each result['success'] == True"
+      - "Verify prompt files exist"
+      - "Verify expected output filenames are noted"
+
+    output:
+      - "prompt_files: <list of prompt file paths>"
+      - "expected_generated_images: <list of expected output filenames>"
+
+  # STEP 9: Generate Images
+  - step: 9
+    name: "generate_images"
+    description: "Generate images using Runware AI API"
+
+    tool_call:
+      function: "generate_images_runware"
+      module: "tools.generate_images_runware"
+      params:
+        video_uuid: "<video_uuid>"
+        timeout_per_image: 30
+
+    behavior:
+      - "Scans resources folder for all *_prompt.txt files"
+      - "Generates one image per prompt"
+      - "Uses async/await with timeout protection"
+      - "Continues on failure (doesn't stop entire process)"
+      - "Returns summary of successes and failures"
+
+    validation:
+      - "Check result['success'] == True"
+      - "Check result['generated_count'] > 0"
+      - "Review result['failed_prompts'] list"
+
+    on_partial_failure:
+      - "Inform user of any failed generations"
+      - "Suggest regenerating failed images"
+      - "Can proceed if most images succeeded"
+
+    on_complete_failure:
+      - "Check RUNWARE_AI_API_KEY is set correctly"
+      - "Check internet connectivity"
+      - "Check Runware API status"
+      - "Suggest manual image creation as fallback"
+
+    output:
+      - "generated_images: <list of generated image paths>"
+      - "failed_prompts: <list of failed generations>"
+      - "generation_summary: <counts and status>"
+
+  # STEP 10: Validate Resources
+  - step: 10
+    name: "validate_resources"
+    description: "Verify all required resources exist before handoff"
+
+    checks:
+      - check: "paper.pdf exists"
+        critical: true
+
+      - check: "script.txt exists"
+        critical: true
+
+      - check: "time_script.txt exists"
+        critical: true
+
+      - check: "All images from time_script.txt exist"
+        tool_call:
+          function: "validate_time_script_images_exist"
+          module: "project.src.utils.validation_utils"
+          params:
+            video_uuid: "<video_uuid>"
+        critical: true
+
+    on_validation_failure:
+      - "Report which resources are missing"
+      - "Suggest how to resolve (regenerate, re-download, etc.)"
+      - "Do not proceed to handoff until fixed"
+
+    output:
+      - "validation_status: <all_valid or missing_resources>"
+      - "missing_resources: <list if any>"
+
+  # STEP 11: Human Handoff
+  - step: 11
+    name: "human_handoff"
+    description: "Inform user that agent phase is complete"
+
+    message_to_user: |
+      ✅ Content creation complete!
+
+      Video Project UUID: <video_uuid>
+      Resources folder: <resources_folder>
+
+      All resources prepared:
+      - ✅ Paper downloaded: paper.pdf
+      - ✅ Script created: script.txt
+      - ✅ Timeline created: time_script.txt
+      - ✅ Images ready: <count> images (found + generated)
+
+      NEXT STEPS (Human Phase):
+
+      1. Generate Voice (Phase 3):
+         - Read script: <path to script.txt>
+         - Use Eleven Labs to generate voice
+         - Save as: generated_voice.mp3 (in same folder)
+
+      2. Generate Video (Phase 4):
+         Run: python project/generate_video.py <video_uuid>
+
+      3. Post to TikTok (Phase 5):
+         Run: python project/post_video.py "<video_path>" --title "..." --hashtags "..."
+
+      Would you like me to read the script aloud so you can review it?
+
+    workflow_status: "COMPLETE - Ready for human phase"
+
+# Error Handling
+error_handling:
+  - error: "Paper download fails"
+    resolution: "Try alternative URL or different paper"
+
+  - error: "Image generation fails"
+    resolution: "Check API key, retry, or use manual image creation"
+
+  - error: "Time script validation fails"
+    resolution: "Fix format issues, ensure images exist"
+
+  - error: "Resources folder creation fails"
+    resolution: "Check disk space and permissions"
+
+# Success Metrics
+success_metrics:
+  - "Paper successfully downloaded and validated"
+  - "Script created and saved (30-60 seconds)"
+  - "Time script created with proper format"
+  - "All referenced images exist (found or generated)"
+  - "User informed of handoff to human phase"
+
+# Notes for Agents
+agent_notes:
+  - "This workflow is semi-automated: you handle discovery/creation, human handles voice"
+  - "Be conversational with user during discovery phase"
+  - "If user asks questions during workflow, pause and answer before continuing"
+  - "Generate unique UUIDs for each video project (e.g., 'abc123', '5f8a2b', etc.)"
+  - "Continue on non-critical failures (e.g., one image fails to generate)"
+  - "Stop on critical failures (e.g., paper download fails, API key missing)"
+  - "Always validate resources before handoff to human"
+  - "Provide clear next steps when handing off to human"
+
+# Version History
+version_history:
+  - version: "1.0.0"
+    date: "2026-02-10"
+    changes: "Initial workflow creation for MVP"

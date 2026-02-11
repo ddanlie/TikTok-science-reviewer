@@ -1,0 +1,19 @@
+# Python virtual environment
+.venv/
+venv/
+
+# Environment variables
+.env
+**/.env
+
+# Project resoursces
+project/resources
+project/videos
+
+# Dependencies
+dependencies/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo

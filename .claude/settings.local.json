@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:gwern.net)",
+      "WebFetch(domain:www.iomcworld.org)"
+    ]
+  }
+}

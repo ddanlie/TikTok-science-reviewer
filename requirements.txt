@@ -1,0 +1,16 @@
+# Science Papers TikTok Blogger MVP - Python Dependencies
+
+# Core HTTP library for downloads
+requests>=2.31.0
+
+# Runware AI SDK for image generation
+runware>=0.4.44
+
+# FFmpeg wrapper for video processing
+ffmpeg-python>=0.2.0
+
+# Environment variable management
+python-dotenv>=1.0.0
+
+# Image validation and processing
+Pillow>=10.0.0
