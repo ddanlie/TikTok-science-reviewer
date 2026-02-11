@@ -14,3 +14,9 @@ python-dotenv>=1.0.0
 
 # Image validation and processing
 Pillow>=10.0.0
+
+# YAML parsing for workflow definitions
+PyYAML>=6.0
+
+# Google ADK - agnet library
+google-adk>=1.24.1

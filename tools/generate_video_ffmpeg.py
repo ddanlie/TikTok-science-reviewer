@@ -43,23 +43,27 @@ def build_ffmpeg_command(
     """
     cmd = [ffmpeg_path]
 
-    # Add input images (each with loop and duration)
+    # Add input images (single frame each — zoompan handles duration)
     for img in images:
-        cmd.extend([
-            '-loop', '1',
-            '-t', str(img['duration']),
-            '-i', img['path']
-        ])
+        cmd.extend(['-i', img['path']])
 
     # Add audio input
     cmd.extend(['-i', audio_path])
-
+    
     # Build filter_complex for scaling and concatenation
     filter_parts = []
 
-    # Scale all images to 720x1280
+    # Apply zoompan effect and scale all images to 720x1280
     for i in range(len(images)):
-        filter_parts.append(f"[{i}:v]scale=720:1280:force_original_aspect_ratio=decrease,pad=720:1280:(ow-iw)/2:(oh-ih)/2,setsar=1[v{i}]")
+        fps = 25
+        num_frames = int(images[i]['duration'] * fps)
+        filter_parts.append(
+            f"[{i}:v]zoompan=z='min(zoom+0.0008,1.20)'"
+            f":x='iw/2-(iw/zoom/2)'"
+            f":y='ih/2-(ih/zoom/2)'"
+            f":d={num_frames}:s=720x1280:fps={fps},"
+            f"setsar=1[v{i}]"
+        )
 
     # Concatenate all scaled images
     concat_inputs = ''.join([f"[v{i}]" for i in range(len(images))])
@@ -84,7 +88,7 @@ def build_ffmpeg_command(
     return cmd
 
 
-def generate_video_ffmpeg(video_uuid: str, ffmpeg_path: str = None) -> Dict:
+def generate_video_ffmpeg(video_uuid: str, ffmpeg_path: str = None) -> Dict: #type: ignore
     """
     Generates TikTok video from images and audio using FFmpeg.
 

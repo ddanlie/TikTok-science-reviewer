@@ -17,3 +17,6 @@ dependencies/
 __pycache__/
 *.pyc
 *.pyo
+
+# Temporary files contents
+.tmp/*
