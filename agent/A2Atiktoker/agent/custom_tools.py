@@ -80,10 +80,20 @@ ARTICLE_DISCOVERY_AGENT_TOOLS = [
 ]
 
 INSIGHTS_GENERATOR_AGENT_TOOLS = [
-    calculate_script_word_amount_tool,
     get_pdf_text_tool,
 ]
 
 VIDEO_SCRIPT_GENERATOR_AGENT_TOOLS = [
+    get_pdf_text_tool,
+    save_script_tool,
+    save_time_script_tool,
+]
 
+PROMPT_ENHANCER_AGENT_TOOLS = [
+    save_image_prompt_tool,
+]
+
+IMAGE_GENERATOR_AGENT_TOOLS = [
+    download_image_tool,
+    google_search,
 ]

@@ -70,7 +70,7 @@ _SEQUENTIAL_INSPIRATION_ENDS_
 2.1) Save the script content (use tool) 
 3) Write a time-script. Time-script is a content of following format:
 1st line - duration of the video in seconds. Duration is {{duration}}
-2nd and further lines - time section with an filename of an image to be shown during that time `paper_image_<id>.<jpg/png>` 
+2nd and further lines - time section with an filename of an image to be shown during that time `paper_image_<id>_generated.<jpg/png>` 
 Example: \"\"\"45
 0.0|paper_image_001_generated.png
 6.0|paper_image_002_generated.png

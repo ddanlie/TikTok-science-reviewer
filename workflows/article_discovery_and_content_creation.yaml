@@ -210,7 +210,7 @@ steps:
     requirements:
       - "Line 1: Total duration in seconds (integer or float)"
       - "Lines 2+: timestamp|image_filename"
-      - "Format: '0.0|paper_image_001_found.jpg'"
+      - "Format: '0.0|paper_image_001_generated.jpg'"
       - "Timestamps in ascending order"
       - "Images change every 5-10 seconds typically"
 
@@ -222,10 +222,10 @@ steps:
 
     example_content: |
       45
-      0.0|paper_image_001_found.jpg
+      0.0|paper_image_001_generated.png
       5.2|paper_image_002_generated.png
       12.8|paper_image_003_generated.png
-      22.5|paper_image_004_found.jpg
+      22.5|paper_image_004_generated.png
       35.0|paper_image_005_generated.png
 
     tool_call:

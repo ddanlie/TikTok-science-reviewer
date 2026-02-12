@@ -14,12 +14,12 @@ from project.src.utils.validation_utils import validate_image, validate_folder_e
 from project.src.utils.error_utils import create_error_response, create_success_response
 
 
-def download_image(url: str, video_uuid: str, image_type: str = "found", timeout: int = 30) -> Dict:
+def download_image(url: str, video_uuid: str, image_id: str, timeout: int = 30) -> Dict:
     """
     Downloads an image from URL with proper naming convention.
 
     The image is validated to ensure it's a valid JPG or PNG file.
-    Filename format: paper_image_{uuid4}_{type}.{ext}
+    Filename format: paper_image_{image_id}_generated.{ext}
 
     Args:
         url: Image URL
@@ -31,7 +31,7 @@ def download_image(url: str, video_uuid: str, image_type: str = "found", timeout
         dict: {
             "success": bool,
             "file_path": str (absolute path to downloaded image),
-            "filename": str (e.g., "paper_image_abc123_found.jpg"),
+            "filename": str (e.g., "paper_image_001_generated.jpg"),
             "error": str (if success=False)
         }
     """
@@ -62,9 +62,7 @@ def download_image(url: str, video_uuid: str, image_type: str = "found", timeout
             if 'png' in content_type:
                 extension = "png"
 
-        # Generate unique filename
-        image_id = str(uuid4())[:8]  # Use first 8 characters of UUID
-        filename = generate_image_filename(image_type, image_id, extension)
+        filename = generate_image_filename(image_id, extension)
         output_file = os.path.join(resources_folder, filename)
 
         # Write the file

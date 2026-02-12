@@ -18,7 +18,7 @@ def save_time_script(time_script_content: str, video_uuid: str) -> Dict:
 
     Expected format:
         Line 1: Total duration in seconds (e.g., "45" or "45.5")
-        Lines 2+: "timestamp|image_filename" (e.g., "0.0|paper_image_001_found.jpg")
+        Lines 2+: "timestamp|image_filename" (e.g., "0.0|paper_image_001_generated.jpg")
 
     Args:
         time_script_content: Multi-line string with format described above

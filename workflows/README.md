@@ -185,7 +185,7 @@ project/resources/video_20260210_abc123_resources/
 ├── paper.pdf
 ├── script.txt
 ├── time_script.txt
-├── paper_image_001_found.jpg
+├── paper_image_001_generated.png
 ├── paper_image_002_generated.png
 ├── paper_image_003_generated.png
 └── [User adds] generated_voice.mp3

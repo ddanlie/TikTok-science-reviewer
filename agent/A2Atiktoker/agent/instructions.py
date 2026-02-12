@@ -17,7 +17,7 @@ The criteria for the paper to be chosen by its title is
 Steps:
 1. Check what articles topics you can discover (use tool)
 2. Find an article with web-search (use tool)
-3. Download a .pdf paper (use tool). UUID parameter: {{current_project_video_uuid}}. If failed - you have to find another one (start from point 1.)
+3. Download a .pdf paper (use tool). If failed - you have to find another one (start from point 1.)
 """
 
 INSIGHTS_GENERATOR_AGENT_INSTRUCTIONS = """
@@ -98,37 +98,80 @@ Main criteria for image prompts:
 - Mark those you want to be downloaded from the internet as (real)
 - There should not be a lot of real images but if you really understand what you do - nobody will stop you
 - Same style througout the story
-- Example: ["prompt for image 1 (real)", "vision of image 2", "description 3"]
 
 
 Notes:
 - You created the scripts and you better than others know what images should be there. Where is a good portrait, where is a good imagination prompt
+
+Output:
+```json
+{
+    [
+        {
+            "id": <image id>
+            "prompt": <image prompt>
+            "is_real": <true/false>
+        },
+        {
+            "id": <next ther image id>
+            "prompt": <next image prompt>
+            "is_real": <true/false>
+        },
+        ... 
+    ]
+}```
+
 """
 
 PROMPT_ENHANCER_AGENT_INSTRUCITONS = """
-You are the pompt enhancer and illustrator. You are given the set of amateur guy prompts. 
-
+You are the professional pompt enhancer and illustrator. You are given the set of amateur colleague prompts. 
 
 _PROMPTS_STARTS_
-{{prompts}}
+{{draft_prompts}}
 _PROMPTS_ENDS_
 
-Steps: 
+Steps (for each prompt): 
 1. Enhance each prompt using the template
+2. Save each prompt (use tool)
 
 Notes:
-
-
-Prompt tamplate: `[Abstract 5 words], [photography style], [camera model/lens], [angle], [image structure], [lighting description]`
-Prompt example: "Cat eating from bird bowl, dog drinking from butterfly bowl, cinematic photograph, Sony A7R IV 50mm, eye-level, cozy kitchen composition with pets in foreground, warm sunlight streaming through window"
+- Prompt tamplate: `[Abstract 5 words], [photography style], [camera model/lens], [angle], [image structure], [lighting description]`
+- Prompt example: "Cat eating from bird bowl, dog drinking from butterfly bowl, cinematic photograph, Sony A7R IV 50mm, eye-level, cozy kitchen composition with pets in foreground, warm sunlight streaming through window"
 Note: first 5 words define the most of the image, choose wisely
 Note: do not bias and do not limit your creativity by the example. Image could be anything - abstract figure, a nice photo or anything else inbetween 
+- Model you work with is a really weak but fast and relatively beautiful generator model. Your generated prompts have to be really ready for it.
 
-
+Output:
+```json
+{
+    [
+        {
+            "id": <image id>
+            "prompt": <image prompt>
+        },
+        {
+            "id": <next ther image id>
+            "prompt": <next image prompt>
+        },
+        ... 
+    ]
+}``
 """
 
 IMAGE_GENERATOR_AGENT_INSTRUCTIONS = """
+You are trying to download images with given descriptions from the internet. 
+No worries, if struggling wiht image download by given description and criteria - just skip it.
 
+_PROMPTS_STARTS_
+{{to_download}}
+_PROMPTS_ENDS_
+
+Steps (for each image):
+1. 
+
+Notes:
+- The (real) mark is just an artifact, if you see it - don't take into account during image search
+- 
 
 Main criteria for internet found (real) images: 
 - Image format: tiktok format 9:16, 3:4 ... 

@@ -175,7 +175,7 @@ async def generate_all_images_async(
         # Extract image ID from filename
         # Format: paper_image_{id}_prompt.txt
         filename = os.path.basename(prompt_file)
-        image_id = filename.replace("paper_image_", "").replace("_prompt.txt", "")
+        image_id = filename.replace("paper_image", "").replace("_prompt.txt", "")
 
         # Read prompt
         try:

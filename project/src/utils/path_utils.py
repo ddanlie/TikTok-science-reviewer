@@ -98,22 +98,18 @@ def get_pdftotext_path() -> str:
     return os.path.join(root, "dependencies", "pdftotext", "pdftotext.exe")
 
 
-def generate_image_filename(image_type: str = "found", image_id: str = None, extension: str = "jpg") -> str: #type: ignore
+def generate_image_filename(image_id: str, extension: str = "jpg") -> str: #type: ignore
     """
     Generates a standardized image filename.
 
     Args:
-        image_type: Type of image ("found" or "generated")
-        image_id: Specific ID for the image (if None, generates new UUID)
+        image_id: Specific ID for the image
         extension: File extension without dot (default: "jpg")
 
     Returns:
-        str: Filename in format "paper_image_{id}_{type}.{ext}"
+        str: Filename in format "paper_image_{id}_generated.{ext}"
     """
-    if image_id is None:
-        image_id = str(uuid4())[:8]  # Use first 8 characters of UUID
-
-    return f"paper_image_{image_id}_{image_type}.{extension}"
+    return f"paper_image_{image_id}_generated.{extension}"
 
 
 def generate_video_filename(video_uuid: str) -> str:
@@ -136,7 +132,7 @@ def parse_time_script(file_path: str) -> dict:
 
     Expected format:
         Line 1: Total duration in seconds (float or int)
-        Lines 2+: "timestamp|image_filename" (e.g., "0.0|paper_image_001_found.jpg")
+        Lines 2+: "timestamp|image_filename" (e.g., "0.0|paper_image_001_generated.jpg")
 
     Args:
         file_path: Absolute path to time_script.txt

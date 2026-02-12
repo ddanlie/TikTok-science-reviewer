@@ -106,7 +106,7 @@ Criteria:
 ### Agent downloads arbitrary found images (tool)
 
 If some images were decided to be added - they are downloaded into `./project/resources/video_{date-now}_{uuid4}_resources/` folder 
-and named `paper_image_{uuid4}_found` with .jpg or .png format and id strictly corresponding to the `./project/resources/video_{date-now}_{uuid4}_resources/time_script.txt`
+and named `paper_image_{id}_generated` with .jpg or .png format and id strictly corresponding to the `./project/resources/video_{date-now}_{uuid4}_resources/time_script.txt`
 
 ### Agent generates prompts for the rest of the images
 Rest of the images from `./project/resources/video_{date-now}_{uuid4}_resources/time_script.txt` that were not downloaded yet must be genrated with runware.ai model that's why a bunch of prompt files should be created to deal with this. 
