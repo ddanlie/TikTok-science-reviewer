@@ -98,4 +98,9 @@ PROMPT_ENHANCER_AGENT_TOOLS = [
 IMAGE_GENERATOR_AGENT_TOOLS = [
     download_image_tool,
     web_search_tool,
+    generate_images_runware_tool
+]
+
+IMAGE_PURE_GENERATOR_AGENT_TOOLS = [
+    generate_images_runware_tool
 ]

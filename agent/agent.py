@@ -11,11 +11,12 @@ from .custom_tools import (
     VIDEO_SCRIPT_GENERATOR_AGENT_TOOLS,
     PROMPT_ENHANCER_AGENT_TOOLS,
     IMAGE_GENERATOR_AGENT_TOOLS,
+    IMAGE_PURE_GENERATOR_AGENT_TOOLS,
     calculate_script_word_amount,
     generate_video_ffmpeg,
 
 )
-from project.src.utils.path_utils import get_ffmpeg_path 
+from project.src.utils.path_utils import get_ffmpeg_path, get_video_resources_folder
 from google.genai import types
 from google.adk.models import BaseLlm
 from google.adk.models.llm_request import LlmRequest
@@ -25,6 +26,7 @@ from . import instructions
 from uuid import uuid4
 from dotenv import load_dotenv
 from typing import AsyncGenerator
+import os
 import time
 import re
 import json
@@ -176,7 +178,7 @@ class OllamaLlm(BaseLlm):
             content=types.Content(role="model", parts=parts)
         )
 
-MODEL_NAME = OllamaLlm(model="qwen3:8b")
+MODEL_NAME = OllamaLlm(model="deepseek-v3.1:671b-cloud")#OllamaLlm(model="qwen3-vl:235b-cloud")#OllamaLlm(model="qwen3:8b")
 
 KEY_CURRENT_PROJECT_VIDEO_UUID = "current_project_video_uuid"
 KEY_SCRIPT_INSIGHTS = "script_insights"
@@ -211,9 +213,11 @@ class ImgPromptsSchema2(BaseModel):
     drafts: list[ImagePromptAndNameSchema]
 
 def after_any_tool_delay(tool, args, tool_context, tool_response):
+    time.sleep(2)
     tool_context.state[KEY_CURRENT_PROJECT_VIDEO_UUID] = CURRENT_UUID
 
 def before_any_agent_delay(callback_context):
+    time.sleep(2)
     callback_context.state[KEY_CURRENT_PROJECT_VIDEO_UUID] = CURRENT_UUID
 
 def set_initial_state_variables(callback_context):
@@ -231,7 +235,12 @@ def after_insights_generator_agent(callback_context):
         callback_context.state[KEY_SCRIPT_INSIGHTS]["duration"]
     )["words_amount"]
 
+def after_continuer_agent(callback_context):
+    global CURRENT_UUID
+    CURRENT_UUID = callback_context.state[KEY_CURRENT_PROJECT_VIDEO_UUID]
+
 def after_coordinator_agent(callback_context):
+    pass
     # can't generate it yet - voice need to generate
     # uuid = callback_context.state[KEY_CURRENT_PROJECT_VIDEO_UUID]
     # generate_video_ffmpeg(uuid, get_ffmpeg_path())
@@ -324,17 +333,103 @@ video_resources_generation_workflow = SequentialAgent(
     ]
 )
 
+continuer_insights_agent = LlmAgent(
+    name="ContinuerInsightsAgent",
+    model=MODEL_NAME,
+    instruction=instructions.INSIGHTS_GENERATOR_AGENT_INSTRUCTIONS,
+    description="Analyses the article and comes up with ideas and insights for the video script",
+    output_key=KEY_SCRIPT_INSIGHTS,
+    output_schema=InsightsSchema,
+    before_agent_callback=before_any_agent_delay,
+    after_agent_callback=after_insights_generator_agent,
+    after_tool_callback=after_any_tool_delay,
+    tools=INSIGHTS_GENERATOR_AGENT_TOOLS #type: ignore
+)
+
+continuer_script_generator_agent = LlmAgent(
+    name="ContinuerScriptGeneratorAgent",
+    model=MODEL_NAME,
+    instruction=instructions.VIDEO_SCRIPT_GENERATOR_AGENT_INSTRUCTIONS,
+    description="Reviews insights, generates 2 scripts - text and image time sequence, makes images prompt drafts",
+    output_key=KEY_DRAFT_PROMPTS,
+    output_schema=ImgPromptsSchema,
+    before_agent_callback=before_any_agent_delay,
+    after_agent_callback=after_scripts_generator_agent,
+    after_tool_callback=after_any_tool_delay,
+    tools=VIDEO_SCRIPT_GENERATOR_AGENT_TOOLS #type: ignore
+)
+
+continuer_prompt_enhancer_agent = LlmAgent(
+    name="ContinuerPromptEnhancerAgent",
+    model=MODEL_NAME,
+    instruction=instructions.PROMPT_ENHANCER_AGENT_INSTRUCITONS,
+    description="Enhances draft image prompts into professional generation-ready prompts and saves them",
+    output_key=KEY_PROMPTS,
+    output_schema=ImgPromptsSchema2,
+    tools=PROMPT_ENHANCER_AGENT_TOOLS, #type: ignore
+    before_agent_callback=before_any_agent_delay,
+    after_tool_callback=after_any_tool_delay,
+)
+
+continuer_image_generator_agent = LlmAgent(
+    name="ContinuerImageGeneratorAgent",
+    model=MODEL_NAME,
+    instruction=instructions.IMAGE_GENERATOR_AGENT_INSTRUCTIONS,
+    description="Generates AI images via Runware and downloads real images from the internet",
+    tools=IMAGE_GENERATOR_AGENT_TOOLS, #type: ignore
+    before_agent_callback=before_any_agent_delay,
+    after_tool_callback=after_any_tool_delay,
+)
+
+continuer_insights_sequential_agent = SequentialAgent(
+    name="ContinuerInsightsSequentialAgent",
+    sub_agents=[
+        continuer_insights_agent,
+        continuer_script_generator_agent,
+        continuer_prompt_enhancer_agent,
+        continuer_image_generator_agent,
+    ],
+    description="Runs insights through full pipeline when continuing a project",
+)
+
+continuer_image_pure_generator_agent = LlmAgent(
+    name="ContinuerImagePureGeneratorAgent",
+    model=MODEL_NAME,
+    instruction=instructions.IMAGE_PURE_GENERATOR_AGENT_INSTRUCTIONS,
+    description="Generates AI images",
+    tools=IMAGE_PURE_GENERATOR_AGENT_TOOLS, #type: ignore
+    before_agent_callback=before_any_agent_delay,
+    after_tool_callback=after_any_tool_delay,
+)
+
+def bnnefore_project_continuer_agent(callback_context):
+    callback_context.state[KEY_CURRENT_PROJECT_VIDEO_UUID] = None
+    
+project_continuer_agent = LlmAgent(
+    name="ProjecctContinuerAgent",
+    model=MODEL_NAME, #type: ignore
+    instruction=instructions.CONTINUER_AGENT_INSTRUCTIONS,
+    before_agent_callback=[bnnefore_project_continuer_agent, before_any_agent_delay],
+    description="Finds out what stage user project failed on and transfers to corresponding agent",
+    sub_agents=[
+        continuer_insights_sequential_agent,
+        continuer_image_pure_generator_agent
+    ],
+    output_key=KEY_CURRENT_PROJECT_VIDEO_UUID,
+    after_agent_callback=after_continuer_agent,
+    after_tool_callback=after_any_tool_delay,
+)
+
 coordinator_agent = LlmAgent(
     name="CoordinatorAgent",
     model=MODEL_NAME, #type: ignore
     instruction=instructions.COORDINATOR_AGENT_INSTRUCTIONS,
     before_agent_callback=[before_any_agent_delay, set_initial_state_variables],
     after_agent_callback=after_coordinator_agent,
-    description="Coordinates work of article review tiktok video creation",
-    sub_agents=[video_resources_generation_workflow],
+    description="Coordinates work of article review tiktok video creation. If asked to continue the work - uses continuer agent.",
+    sub_agents=[video_resources_generation_workflow, project_continuer_agent],
     after_tool_callback=after_any_tool_delay,
 )
-
 
 root_agent = SequentialAgent(
     name="RootWorkflow",

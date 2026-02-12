@@ -53,12 +53,12 @@ def build_ffmpeg_command(
     # Build filter_complex for scaling and concatenation
     filter_parts = []
 
-    # Apply zoompan effect and scale all images to 720x1280
+    # Scale all images to 720x1280 and set duration (zoompan with z=1 for no zoom)
     for i in range(len(images)):
         fps = 25
         num_frames = int(images[i]['duration'] * fps)
         filter_parts.append(
-            f"[{i}:v]zoompan=z='min(zoom+0.0008,1.20)'"
+            f"[{i}:v]zoompan=z='1'"
             f":x='iw/2-(iw/zoom/2)'"
             f":y='ih/2-(ih/zoom/2)'"
             f":d={num_frames}:s=720x1280:fps={fps},"

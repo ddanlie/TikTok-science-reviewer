@@ -92,16 +92,19 @@ async def generate_single_image(
     Returns:
         dict: {"success": bool, "path": str, "error": str}
     """
-    # Try main model
-    try:
-        result = await _run_inference(runware_client, prompt, output_path, model_id, timeout)
-        if result["success"]:
-            return result
-        main_error = result["error"]
-    except asyncio.TimeoutError:
-        main_error = f"Timeout after {timeout} seconds"
-    except Exception as e:
-        main_error = str(e)
+    # Try main model 3 times: 
+    for i in range(3):
+        try:
+            result = await _run_inference(runware_client, prompt, output_path, model_id, timeout)
+            if result["success"]:
+                return result
+            main_error = result["error"]
+        except asyncio.TimeoutError:
+            main_error = f"Timeout after {timeout} seconds"
+        except Exception as e:
+            main_error = str(e)
+
+        await asyncio.sleep(5)
 
     # Fallback to default model if it differs
     if default_model_id != model_id:
@@ -177,7 +180,7 @@ async def generate_all_images_async(
         # Extract image ID from filename
         # Format: paper_image_{id}_prompt.txt
         filename = os.path.basename(prompt_file)
-        image_id = filename.replace("paper_image", "").replace("_prompt.txt", "")
+        image_id = filename.replace("paper_image_", "").replace("_prompt.txt", "")
 
         # Read prompt
         try:
@@ -191,7 +194,7 @@ async def generate_all_images_async(
             continue
 
         # Determine output path
-        output_filename = f"paper_image_{image_id}_generated.png"
+        output_filename = f"paper_image_{image_id}.png"
         output_path = os.path.join(resources_folder, output_filename)
 
         # Generate image
@@ -212,7 +215,7 @@ async def generate_all_images_async(
                 "error": result["error"]
             })
 
-        time.sleep(1)
+        await asyncio.sleep(1)
 
     # Disconnect
     try:
@@ -228,7 +231,7 @@ async def generate_all_images_async(
     })
 
 
-def generate_images_runware(video_uuid: str, timeout_per_image: int = 30) -> Dict:
+async def generate_images_runware(video_uuid: str, timeout_per_image: int = 30) -> Dict:
     """
     Generates all images based on prompt files in the video resources folder.
 
@@ -284,8 +287,8 @@ def generate_images_runware(video_uuid: str, timeout_per_image: int = 30) -> Dic
                         default_model_id = model_value
 
         # Run async generation
-        result = asyncio.run(
-            generate_all_images_async(video_uuid, model_id, default_model_id, timeout_per_image)
+        result = await generate_all_images_async(
+            video_uuid, model_id, default_model_id, timeout_per_image
         )
 
         return result
