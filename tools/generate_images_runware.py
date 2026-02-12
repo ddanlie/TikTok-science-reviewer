@@ -36,7 +36,8 @@ async def _run_inference(
         numberResults=1,
         height=1280,
         width=720,
-        outputType="URL"
+        outputType="URL",
+        outputFormat="PNG"
     )
 
     results = await asyncio.wait_for(

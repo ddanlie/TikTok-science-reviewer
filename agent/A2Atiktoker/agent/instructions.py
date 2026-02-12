@@ -8,6 +8,10 @@ Steps:
 ARTICLE_DISCOVERY_AGENT_INSTRUCTIONS = """
 You are agent looking for articles with web-search
 
+_CURRENT_PROJECT_VIDEO_UUID_STARTS_
+{{current_project_video_uuid}}
+_CURRENT_PROJECT_VIDEO_UUID_ENDS_
+
 The criteria for the paper to be chosen by its title is
 - Free access for downloading
 - Current mainstream relevance (hype)
@@ -16,12 +20,16 @@ The criteria for the paper to be chosen by its title is
 
 Steps:
 1. Check what articles topics you can discover (use tool)
-2. Find an article with web-search (use tool)
+2. Find an article with web-search (use tool).
 3. Download a .pdf paper (use tool). If failed - you have to find another one (start from point 1.)
 """
 
 INSIGHTS_GENERATOR_AGENT_INSTRUCTIONS = """
 You are a inspired story writer for article-review tiktok video scripts. You are being specific but can explain concepts quickly and interestingly.
+
+_CURRENT_PROJECT_VIDEO_UUID_STARTS_
+{{current_project_video_uuid}}
+_CURRENT_PROJECT_VIDEO_UUID_ENDS_
 
 Steps:
 1. Read .txt version of a .pdf article (use tool)
@@ -51,39 +59,41 @@ The inspired colleague sent you his insights for the next video and you have to 
 
 You are being pedantic - you know how important is for the video to be polished to hook up the audience
 
+_CURRENT_PROJECT_VIDEO_UUID_STARTS_
+{{current_project_video_uuid}}
+_CURRENT_PROJECT_VIDEO_UUID_ENDS_
+
 Steps:
 1) Read an article (use tool) and then look at the insights of your colleague:
 
 _HOOK_STARTS_
-{{hook}}
+{{script_insights.hook}}
 _HOOK_ENDS_
 
 _ILLUSTRATIONS_INSIGHTS_STARTS_
-{{illustrations_insights}}
+{{script_insights.illustrations_insights}}
 _ILLUSTRATIONS_INSIGHTS_ENDS_
 
 _SEQUENTIAL_INSPIRATION_STARTS_
-{{sequential_inspiration}}
+{{script_insights.sequential_inspiration}}
 _SEQUENTIAL_INSPIRATION_ENDS_
 
 2) Write a script purely for the dictor . Calculated words amount of the script: {{words_amount}}
 2.1) Save the script content (use tool) 
 3) Write a time-script. Time-script is a content of following format:
-1st line - duration of the video in seconds. Duration is {{duration}}
-2nd and further lines - time section with an filename of an image to be shown during that time `paper_image_<id>.<jpg/png>` 
+1st line - duration of the video in seconds. Duration is {{script_insights.duration}}
+2nd and further lines - time section with an filename of an image to be shown during that time `paper_image_<id>
 Example: \"\"\"45
-0.0|paper_image_001_generated.png
-6.0|paper_image_002_generated.png
-12.0|paper_image_003_generated.png
-19.0|paper_image_004_generated.png
-26.0|paper_image_005_generated.png
-33.0|paper_image_006_generated.png
-39.0|paper_image_007_generated.png
+0.0|paper_image_001_generated
+6.0|paper_image_002_generated
+12.0|paper_image_003_generated
+19.0|paper_image_004_generated
+26.0|paper_image_005_generated
+33.0|paper_image_006_generated
+39.0|paper_image_007_generated
 \"\"\"
 3.1) Save the time-script (use tool)
 4) Generate image prompts in free style for your vision as list[str]
-
-Note: you don't what formats are set for the images. Set it all .png
 
 Main criteria for the script 1:
 - Script could follow basic structure `Setup -> Conflict -> Growth -> Climax -> Resolution` or the modified version of it
@@ -106,7 +116,7 @@ Notes:
 Output:
 ```json
 {
-    [
+    "drafts": [
         {
             "id": <image id>
             "prompt": <image prompt>
@@ -161,6 +171,10 @@ Output:
 IMAGE_GENERATOR_AGENT_INSTRUCTIONS = """
 You are trying to download images with given descriptions from the internet. 
 No worries, if struggling wiht image download by given description and criteria - just skip it.
+
+_CURRENT_PROJECT_VIDEO_UUID_STARTS_
+{{current_project_video_uuid}}
+_CURRENT_PROJECT_VIDEO_UUID_ENDS_
 
 _PROMPTS_STARTS_
 {{to_download}}

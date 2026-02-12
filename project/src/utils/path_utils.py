@@ -132,7 +132,10 @@ def parse_time_script(file_path: str) -> dict:
 
     Expected format:
         Line 1: Total duration in seconds (float or int)
-        Lines 2+: "timestamp|image_filename" (e.g., "0.0|paper_image_001_generated.jpg")
+        Lines 2+: "timestamp|image_filename" (e.g., "0.0|paper_image_001_generated")
+
+    Image filenames may omit the extension. When no extension is present,
+    the parser checks for .jpg first, then .png in the same directory.
 
     Args:
         file_path: Absolute path to time_script.txt
@@ -187,6 +190,19 @@ def parse_time_script(file_path: str) -> dict:
         image_filename = parts[1].strip()
         if not image_filename:
             raise ValueError(f"Line {i} has empty filename")
+
+        # Resolve extension if missing: prioritize .jpg, then .png
+        _, ext = os.path.splitext(image_filename)
+        if not ext:
+            script_dir = os.path.dirname(file_path)
+            jpg_path = os.path.join(script_dir, image_filename + ".jpg")
+            png_path = os.path.join(script_dir, image_filename + ".png")
+            if os.path.exists(jpg_path):
+                image_filename += ".jpg"
+            elif os.path.exists(png_path):
+                image_filename += ".png"
+            else:
+                raise Exception(f"No image named {os.path.join(script_dir, image_filename)}")
 
         sections.append({
             "timestamp": timestamp,
