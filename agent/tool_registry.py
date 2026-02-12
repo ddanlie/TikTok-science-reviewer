@@ -93,6 +93,18 @@ TOOL_DEFINITIONS: Dict[str, Dict[str, Any]] = {
             {"name": "video_uuid", "type": "str", "required": True},
         ],
     },
+    "get_pdf_text": {
+        "module": "tools.get_pdf_text",
+        "function": "get_pdf_text",
+        "params": [
+            {"name": "video_uuid", "type": "str", "required": True},
+        ],
+    },
+    "get_paper_topics": {
+        "module": "tools.get_paper_topics",
+        "function": "get_paper_topics",
+        "params": [],
+    },
 }
 
 # Maps successful tool results to state keys for auto-extraction
@@ -101,6 +113,7 @@ AUTO_STATE_KEYS: Dict[str, Dict[str, str]] = {
     "save_script": {"file_path": "script_path"},
     "save_time_script": {"file_path": "time_script_path"},
     "generate_images_runware": {"generated_images": "generated_images", "failed_prompts": "failed_prompts"},
+    "get_pdf_text": {"text": "paper_text", "file_path": "paper_text_path"},
 }
 
 

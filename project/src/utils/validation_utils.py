@@ -95,7 +95,7 @@ def validate_image(file_path: str) -> bool:
         return False
 
 
-def validate_video_resources_complete(video_uuid: str) -> Dict[str, any]:
+def validate_video_resources_complete(video_uuid: str) -> Dict[str, any]: #type: ignore
     """
     Checks if all required files exist for a video project.
 
@@ -141,7 +141,7 @@ def validate_video_resources_complete(video_uuid: str) -> Dict[str, any]:
     }
 
 
-def validate_time_script_images_exist(video_uuid: str) -> Dict[str, any]:
+def validate_time_script_images_exist(video_uuid: str) -> Dict[str, any]: #type: ignore
     """
     Checks if all images referenced in time_script.txt exist.
 

@@ -44,10 +44,10 @@ async def _run_inference(
         timeout=timeout
     )
 
-    if not results or len(results) == 0:
+    if not results or len(results) == 0: #type: ignore
         return {"success": False, "error": "No image generated"}
 
-    image_result = results[0]
+    image_result = results[0] #type: ignore
 
     if hasattr(image_result, 'imageURL'):
         image_url = image_result.imageURL

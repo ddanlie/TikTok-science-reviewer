@@ -87,7 +87,18 @@ def get_ffmpeg_path() -> str:
     return os.path.join(root, "dependencies", "ffmpeg", "bin", "ffmpeg.exe")
 
 
-def generate_image_filename(image_type: str = "found", image_id: str = None, extension: str = "jpg") -> str:
+def get_pdftotext_path() -> str:
+    """
+    Returns the absolute path to pdftotext.exe in dependencies folder.
+
+    Returns:
+        str: Absolute path to pdftotext.exe
+    """
+    root = get_project_root()
+    return os.path.join(root, "dependencies", "pdftotext", "pdftotext.exe")
+
+
+def generate_image_filename(image_type: str = "found", image_id: str = None, extension: str = "jpg") -> str: #type: ignore
     """
     Generates a standardized image filename.
 
