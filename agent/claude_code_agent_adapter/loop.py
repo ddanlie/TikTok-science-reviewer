@@ -12,7 +12,7 @@ import sys
 from dataclasses import asdict
 from typing import Optional
 
-from agent.protocol import (
+from agent.claude_code_agent_adapter.protocol import (
     ContextMessage,
     StepInfo,
     ProtocolError,
@@ -24,9 +24,9 @@ from agent.protocol import (
     parse_input,
     serialize_context,
 )
-from agent.state import WorkflowState
-from agent.tool_registry import ToolRegistry
-from agent.workflow_parser import parse_workflow, WorkflowStep
+from agent.claude_code_agent_adapter.state import WorkflowState
+from agent.claude_code_agent_adapter.tool_registry import ToolRegistry
+from agent.claude_code_agent_adapter.workflow_parser import parse_workflow, WorkflowStep
 
 
 LLM_CAPABILITIES = [

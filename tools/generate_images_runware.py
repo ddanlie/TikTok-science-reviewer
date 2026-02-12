@@ -9,6 +9,7 @@ import os
 import glob
 import asyncio
 import requests
+import time
 from typing import Dict, List
 from runware import Runware, IImageInference
 from project.src.utils.path_utils import get_video_resources_folder
@@ -210,6 +211,8 @@ async def generate_all_images_async(
                 "prompt_file": prompt_file,
                 "error": result["error"]
             })
+
+        time.sleep(1)
 
     # Disconnect
     try:

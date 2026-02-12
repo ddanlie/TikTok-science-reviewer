@@ -39,7 +39,7 @@ def get_pdf_text(video_uuid: str) -> Dict:
 
         # If text file already exists, just read and return it
         if validate_file_exists(txt_path):
-            with open(txt_path, 'r', encoding='utf-8') as f:
+            with open(txt_path, 'r', encoding='utf-8', errors='replace') as f:
                 text = f.read()
             return create_success_response({
                 "text": text,
@@ -102,7 +102,7 @@ def get_pdf_text(video_uuid: str) -> Dict:
             )
 
         # Read and return the text
-        with open(txt_path, 'r', encoding='utf-8') as f:
+        with open(txt_path, 'r', encoding='utf-8', errors='replace') as f:
             text = f.read()
 
         return create_success_response({

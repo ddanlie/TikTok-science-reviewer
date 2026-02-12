@@ -5,7 +5,7 @@ Imports all tools from the tools/ package and the validation utility,
 wrapping each as a google.adk FunctionTool for use by LLM agents.
 """
 
-from google.adk.tools import FunctionTool, google_search, tool #type: ignore
+from google.adk.tools import FunctionTool #type: ignore
 
 from tools.download_paper import download_paper
 from tools.save_script import save_script
@@ -18,6 +18,7 @@ from tools.post_video_tiktok import post_video_tiktok
 from tools.calculate_script_word_amount import calculate_script_word_amount
 from tools.get_pdf_text import get_pdf_text
 from tools.get_paper_topics import get_paper_topics
+from tools.web_search import web_search
 from project.src.utils.validation_utils import (
     validate_folder_exists,
     validate_file_exists,
@@ -41,6 +42,7 @@ post_video_tiktok_tool = FunctionTool(post_video_tiktok)
 calculate_script_word_amount_tool = FunctionTool(calculate_script_word_amount)
 get_pdf_text_tool = FunctionTool(get_pdf_text)
 get_paper_topics_tool = FunctionTool(get_paper_topics)
+web_search_tool = FunctionTool(web_search)
 
 # Validation tools
 validate_folder_exists_tool = FunctionTool(validate_folder_exists)
@@ -70,11 +72,11 @@ ALL_TOOLS = [
     validate_video_resources_complete_tool,
     validate_time_script_images_exist_tool,
     validate_video_file_tool,
-    google_search,
+    web_search_tool,
 ]
 
 ARTICLE_DISCOVERY_AGENT_TOOLS = [
-    google_search,
+    web_search_tool,
     get_paper_topics_tool,
     download_paper_tool,
 ]
@@ -95,5 +97,5 @@ PROMPT_ENHANCER_AGENT_TOOLS = [
 
 IMAGE_GENERATOR_AGENT_TOOLS = [
     download_image_tool,
-    google_search,
+    web_search_tool,
 ]
